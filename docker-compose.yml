@@ -1,0 +1,51 @@
+version: "3.8"
+services:
+
+  api:
+    ports:
+      - "8000:8000"
+    image: blog-app:latest
+    container_name: blog-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+        db:
+          condition: service_healthy
+    networks:
+      - blog-network
+
+  db:
+    image: postgres:14.2
+    container_name: blog-db
+    environment:
+      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_PASSWORD=${DATABASE_PASS}
+      - POSTGRES_DB=${DATABASE_NAME}
+      - DATABASE_HOST=${DATABASE_HOST}
+    ports:
+      - "5432:5432"
+    networks:
+      - blog-network
+    volumes:
+      - postgres_data_blog:/var/lib/postgresql/data/
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "10"
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  blog-network:
+    name: blog-network
+
+volumes:
+  postgres_data_blog:
